@@ -59,4 +59,38 @@ const register = async (req, res) => {
     }
   };
 
-module.exports = { welcome, register }
+  const login = async (req, res) => {
+    let { email, password } = req.body;
+  
+    let errors = [];
+  
+    if (!email || !password) {
+      errors.push({ message: "Please Enter Email and Password" });
+      res.status(400).json({ errors }); // Return errors as JSON
+    } else {
+      // Check if user exists
+      client.query(`SELECT * FROM public.admin WHERE email = $1`, [email], async (err, result) => {
+        if (err) {
+          throw err;
+        }
+  
+        if (result.rows.length === 0) {
+          errors.push({ message: "User not found" });
+          res.status(404).json({ errors }); // Return errors as JSON
+        } else {
+          // Check if password is correct
+          const user = result.rows[0];
+          const validPassword = await bcrypt.compare(password, user.password);
+          if (!validPassword) {
+            errors.push({ message: "Invalid Password" });
+            res.status(401).json({ errors }); // Return errors as JSON
+          } else {
+            // Password is correct, user is authenticated
+            res.status(200).json({ message: "Login Successful" }); // Return success message as JSON
+          }
+        }
+      });
+    }
+  };
+
+module.exports = { welcome, register, login }
