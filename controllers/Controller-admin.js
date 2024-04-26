@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const pg = require('pg');
+const jwt = require('jsonwebtoken');
 
 // Connect to PostgreSQL
 const conString = "postgres://pobrpkhn:eRnVq78-FrEnfFiLLnIbHrXkkDosTJdD@drona.db.elephantsql.com/pobrpkhn";
@@ -60,7 +61,11 @@ const register = async (req, res) => {
   };
 
   const login = async (req, res) => {
+
     let { email, password } = req.body;
+    
+    const access_token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET)
+    
   
     let errors = [];
   
@@ -73,6 +78,8 @@ const register = async (req, res) => {
         if (err) {
           throw err;
         }
+
+        const username = result.rows[0].username;
   
         if (result.rows.length === 0) {
           errors.push({ message: "User not found" });
@@ -86,11 +93,49 @@ const register = async (req, res) => {
             res.status(401).json({ errors }); // Return errors as JSON
           } else {
             // Password is correct, user is authenticated
-            res.status(200).json({ message: "Login Successful" }); // Return success message as JSON
+            res.status(200).json({ access_token: access_token, username: username }); // Return success message as JSON // Return success message as JSON
           }
         }
       });
     }
   };
+
+  // const jwt = require('jsonwebtoken');
+
+// const login = async (req, res) => {
+//   let { email, password } = req.body;
+
+//   let errors = [];
+
+//   if (!email || !password) {
+//     errors.push({ message: "Please Enter Email and Password" });
+//     res.status(400).json({ errors }); // Return errors as JSON
+//   } else {
+//     // Check if user exists
+//     client.query(`SELECT * FROM public.admin WHERE email = $1`, [email], async (err, result) => {
+//       if (err) {
+//         throw err;
+//       }
+
+//       if (result.rows.length === 0) {
+//         errors.push({ message: "User not found" });
+//         res.status(404).json({ errors }); // Return errors as JSON
+//       } else {
+//         // Check if password is correct
+//         const user = result.rows[0];
+//         const validPassword = await bcrypt.compare(password, user.password);
+//         if (!validPassword) {
+//           errors.push({ message: "Invalid Password" });
+//           res.status(401).json({ errors }); // Return errors as JSON
+//         } else {
+//           // Password is correct, user is authenticated
+//           const token = jwt.sign({ userId: user.id }, 'your_secret_key_here', { expiresIn: '1h' }); // Generate JWT token
+//           res.status(200).json({ token }); // Return token as JSON
+//         }
+//       }
+//     });
+//   }
+// };
+
 
 module.exports = { welcome, register, login }
