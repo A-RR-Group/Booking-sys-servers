@@ -6,7 +6,6 @@ const app = express();
 
 app.use(express.json());
 
-
 // Middleware
 app.use(bodyParser.json());
 dotenv.config();

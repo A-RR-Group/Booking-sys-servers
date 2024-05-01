@@ -100,42 +100,24 @@ const register = async (req, res) => {
     }
   };
 
-  // const jwt = require('jsonwebtoken');
+  const getExpresses = (req,res) => {
+    client.query(`SELECT * FROM public.express`, (err, result) => {
+      if (err) {
+        throw err;
+      }
 
-// const login = async (req, res) => {
-//   let { email, password } = req.body;
+      // console.log(result.rows);
+      res.status(200).json({ expresses: result.rows})
+    })};
 
-//   let errors = [];
+    const getStations = (req,res) => {
+      client.query(`SELECT * FROM public.bus_station`, (err, result) => {
+        if (err) {
+          throw err;
+        }
+  
+        // console.log(result.rows);
+        res.status(200).json({ stations: result.rows})
+      })};
 
-//   if (!email || !password) {
-//     errors.push({ message: "Please Enter Email and Password" });
-//     res.status(400).json({ errors }); // Return errors as JSON
-//   } else {
-//     // Check if user exists
-//     client.query(`SELECT * FROM public.admin WHERE email = $1`, [email], async (err, result) => {
-//       if (err) {
-//         throw err;
-//       }
-
-//       if (result.rows.length === 0) {
-//         errors.push({ message: "User not found" });
-//         res.status(404).json({ errors }); // Return errors as JSON
-//       } else {
-//         // Check if password is correct
-//         const user = result.rows[0];
-//         const validPassword = await bcrypt.compare(password, user.password);
-//         if (!validPassword) {
-//           errors.push({ message: "Invalid Password" });
-//           res.status(401).json({ errors }); // Return errors as JSON
-//         } else {
-//           // Password is correct, user is authenticated
-//           const token = jwt.sign({ userId: user.id }, 'your_secret_key_here', { expiresIn: '1h' }); // Generate JWT token
-//           res.status(200).json({ token }); // Return token as JSON
-//         }
-//       }
-//     });
-//   }
-// };
-
-
-module.exports = { welcome, register, login }
+module.exports = { welcome, register, login, getExpresses, getStations }
