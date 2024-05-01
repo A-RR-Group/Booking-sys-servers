@@ -79,8 +79,6 @@ const register = async (req, res) => {
           throw err;
         }
 
-        const username = result.rows[0].username;
-  
         if (result.rows.length === 0) {
           errors.push({ message: "User not found" });
           res.status(404).json({ errors }); // Return errors as JSON
@@ -92,6 +90,7 @@ const register = async (req, res) => {
             errors.push({ message: "Invalid Password" });
             res.status(401).json({ errors }); // Return errors as JSON
           } else {
+            const username = result.rows[0].username;
             // Password is correct, user is authenticated
             res.status(200).json({ access_token: access_token, username: username }); // Return success message as JSON // Return success message as JSON
           }
