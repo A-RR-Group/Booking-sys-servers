@@ -119,4 +119,74 @@ const register = async (req, res) => {
         res.status(200).json({ stations: result.rows})
       })};
 
-module.exports = { welcome, register, login, getExpresses, getStations }
+
+      // Adding Express endpoint
+// const addExpress = (req, res) => {
+
+//   let { name, phone_number, email, password, state } = req.body;
+
+//   let errors = [];
+
+//   if (!name || !phone_number || !email || !password || !state) {
+//     errors.push({ message: "Please Fill All Fields" });
+//     return res.status(400).json({ errors }); // Return errors as JSON
+//   }
+
+//   try {
+//     let hashedPass = bcrypt.hash(password, 10);
+//     console.log(hashedPass);
+
+//     // Check if email is already registered
+//     const result = client.query(`SELECT * FROM express WHERE name = $1`, [name]);
+//     console.log(result.rows);
+
+//     // if (result.rows.length > 0) {
+//     //   errors.push({ message: "Name Already Registered" });
+//     //   return res.status(400).json({ errors }); // Return errors as JSON
+//     // }
+
+//     // Insert new user
+//     const insertResult = client.query("INSERT INTO express (name, phone_number, email, password, state) VALUES ($1, $2, $3, $4, $5) RETURNING id, password", [name, phone_number, email, hashedPass, state]);
+//     console.log(insertResult.rows);
+//     return res.status(200).json({ message: "Adding express Was Successful" }); // Return success message as JSON
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
+//   }
+// };
+
+
+const addExpress = async (req, res) => {
+  let { name, phone_number, email, password, state } = req.body;
+  let errors = [];
+
+  if (!name || !phone_number || !email || !password || !state) {
+    errors.push({ message: "Please Fill All Fields" });
+    return res.status(400).json({ errors }); // Return errors as JSON
+  }
+
+  try {
+    let hashedPass = await bcrypt.hash(password, 10);
+    console.log(hashedPass);
+
+    // Check if name is already registered
+    const result = await client.query(`SELECT * FROM public.express WHERE name = $1`, [name]);
+    console.log(result.rows);
+
+    if (result.rows.length > 0) {
+      errors.push({ message: "Name Already Registered" });
+      return res.status(400).json({ errors }); // Return errors as JSON
+    } else {
+      console.log("express_name available");
+      // return res.json({message: "express_name available"});
+      const insertResult = await client.query("INSERT INTO public.express(name, phone_number, email, password, state) VALUES ($1, $2, $3, $4, $5) RETURNING id, password", [name, phone_number, email, hashedPass, state]);
+      console.log(insertResult.rows);
+      return res.status(200).json({ message: "Adding express Was Successful" }); // Return success message as JSON
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
+  }
+};
+
+module.exports = { welcome, register, login, getExpresses, getStations, addExpress }
