@@ -120,42 +120,6 @@ const register = async (req, res) => {
       })};
 
 
-      // Adding Express endpoint
-// const addExpress = (req, res) => {
-
-//   let { name, phone_number, email, password, state } = req.body;
-
-//   let errors = [];
-
-//   if (!name || !phone_number || !email || !password || !state) {
-//     errors.push({ message: "Please Fill All Fields" });
-//     return res.status(400).json({ errors }); // Return errors as JSON
-//   }
-
-//   try {
-//     let hashedPass = bcrypt.hash(password, 10);
-//     console.log(hashedPass);
-
-//     // Check if email is already registered
-//     const result = client.query(`SELECT * FROM express WHERE name = $1`, [name]);
-//     console.log(result.rows);
-
-//     // if (result.rows.length > 0) {
-//     //   errors.push({ message: "Name Already Registered" });
-//     //   return res.status(400).json({ errors }); // Return errors as JSON
-//     // }
-
-//     // Insert new user
-//     const insertResult = client.query("INSERT INTO express (name, phone_number, email, password, state) VALUES ($1, $2, $3, $4, $5) RETURNING id, password", [name, phone_number, email, hashedPass, state]);
-//     console.log(insertResult.rows);
-//     return res.status(200).json({ message: "Adding express Was Successful" }); // Return success message as JSON
-//   } catch (err) {
-//     console.error(err);
-//     return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
-//   }
-// };
-
-
 const addExpress = async (req, res) => {
   let { name, phone_number, email, password, state } = req.body;
   let errors = [];
@@ -189,4 +153,38 @@ const addExpress = async (req, res) => {
   }
 };
 
-module.exports = { welcome, register, login, getExpresses, getStations, addExpress }
+
+
+const removeExpress = async (req, res) => {
+  let { id } = req.body;
+  let errors = [];
+
+  if (!id) {
+    errors.push({ message: "ID parameter is missing" });
+    return res.status(400).json({ errors }); // Return errors as JSON
+  }
+
+  try {
+    // Check if the express exists
+    const result = await client.query('SELECT * FROM public.express WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      errors.push({ message: "Express not found" });
+      return res.status(404).json({ errors }); // Return not found error as JSON
+    }
+
+    // Remove the express
+    const deleteResult = await client.query('DELETE FROM public.express WHERE id = $1', [id]);
+    console.log(deleteResult);
+
+    return res.status(200).json({ message: "Express removed successfully" }); // Return success message as JSON
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
+  }
+};
+
+// // Usage in your Express app
+// app.delete('/api/express/:id', removeExpress);
+
+
+module.exports = { welcome, register, login, getExpresses, getStations, addExpress, removeExpress }
