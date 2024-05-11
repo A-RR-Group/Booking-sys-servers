@@ -1,5 +1,5 @@
 const express = require("express");
-const { welcome, register, login, getExpresses, getStations, addExpress, removeExpress } = require("../controllers/Controller-admin");
+const { welcome, register, login, getExpresses, getStations, addExpress, removeExpress, Bus_station, Remove_Bus_station } = require("../controllers/Controller-admin");
 const router = express.Router();
 
 router.route("/").get(welcome)
@@ -9,5 +9,7 @@ router.route("/getExpresses").get(getExpresses)
 router.route("/getStations").get(getStations)
 router.route("/addExpress").post(addExpress)
 router.route("/removeExpress").post(removeExpress)
+router.route("/Bus_station").post(Bus_station)
+router.route("/Remove_Bus_station").post(Remove_Bus_station)
 
 module.exports = router;
