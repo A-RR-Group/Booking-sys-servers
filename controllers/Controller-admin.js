@@ -237,6 +237,33 @@ const Remove_Bus_station = async (req, res) => {
 };
 
 
+const edit_Bus_station = async (req, res) => {
+  try {
+    const { id } = req.body;
+    const { name, state } = req.body;
+    let errors = [];
+
+    if (!name || !state) {
+      errors.push({ message: "Please Fill All Fields" });
+      return res.status(400).json({ errors }); // Return errors as JSON
+    }
+
+    // Check if bus station exists
+    const checkResult = await client.query('SELECT * FROM public.bus_station WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: "Bus station not found" });
+    }
+
+    // Update bus station
+    const updateResult = await client.query('UPDATE public.bus_station SET name = $1, state = $2 WHERE id = $3 RETURNING id, name, state', [name, state, id]);
+    console.log(updateResult.rows);
+
+    return res.status(200).json({ message: "Bus station updated successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};
 
 
-module.exports = { welcome, register, login, getExpresses, getStations, addExpress, removeExpress, Bus_station, Remove_Bus_station}
+module.exports = { welcome, register, login, getExpresses, getStations, addExpress, removeExpress, Bus_station, Remove_Bus_station, edit_Bus_station}
