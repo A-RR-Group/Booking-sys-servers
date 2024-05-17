@@ -185,7 +185,7 @@ const removeExpress = async (req, res) => {
 
 
 
-const Bus_station = async (req, res) => {
+const addBusStation = async (req, res) => {
   try {
     let { name, state } = req.body;
     let errors = [];
@@ -215,7 +215,7 @@ const Bus_station = async (req, res) => {
 
 
 
-const Remove_Bus_station = async (req, res) => {
+const RemoveBusStation = async (req, res) => {
   try {
     const { id } = req.body;
 
@@ -237,7 +237,7 @@ const Remove_Bus_station = async (req, res) => {
 };
 
 
-const edit_Bus_station = async (req, res) => {
+const editBusStation = async (req, res) => {
   try {
     const { id } = req.body;
     const { name, state } = req.body;
@@ -266,4 +266,4 @@ const edit_Bus_station = async (req, res) => {
 };
 
 
-module.exports = { welcome, register, login, getExpresses, getStations, addExpress, removeExpress, Bus_station, Remove_Bus_station, edit_Bus_station}
+module.exports = { welcome, register, login, getExpresses, getStations, addExpress, removeExpress, addBusStation, RemoveBusStation, editBusStation}
