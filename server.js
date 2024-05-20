@@ -13,6 +13,7 @@ app.use(cors());
 
 // Routes
 app.use("/admin", require("./routes/admin"))
+app.use("/express", require("./routes/express"))
 
 // Start server
 const port = 3000;
