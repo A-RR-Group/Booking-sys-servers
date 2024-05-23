@@ -58,8 +58,52 @@ const login = async (req, res) => {
       });
     }
   };
+    
 
-
-
-
-module.exports = { welcome, login}
+  const addBus = async (req, res) => {
+    let { licence_plate, bus_capacity, booked_seats, password, express_id, state } = req.body;
+    let errors = [];
+  
+    if (!licence_plate || !bus_capacity || !booked_seats || !password || !express_id || !state) {
+      errors.push({ message: "Please Fill All Fields" });
+      return res.status(400).json({ errors }); // Return errors as JSON
+    }
+  
+    try {
+      let hashedPass = await bcrypt.hash(password, 10);
+      console.log(hashedPass);
+  
+      // Check if bus is already registered
+      const busResult = await client.query(`SELECT * FROM public.bus WHERE licence_plate = $1`, [licence_plate]);
+      console.log(busResult.rows);
+  
+      if (busResult.rows.length > 0) {
+        errors.push({ message: "Bus Already Registered" });
+        return res.status(400).json({ errors }); // Return errors as JSON
+      }
+  
+      // Check if the express_id exists in the express table
+      const expressResult = await client.query(`SELECT * FROM public.express WHERE id = $1`, [express_id]);
+      console.log(expressResult.rows);
+  
+      if (expressResult.rows.length === 0) {
+        errors.push({ message: "Express ID Not Found" });
+        return res.status(400).json({ errors }); // Return errors as JSON
+      }
+  
+      // Insert the new bus record
+      const insertResult = await client.query(
+        "INSERT INTO public.bus(licence_plate, bus_capacity, booked_seats, password, express_id, state) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, password",
+        [licence_plate, bus_capacity, booked_seats, hashedPass, express_id, state]
+      );
+      console.log(insertResult.rows);
+      return res.status(200).json({ message: "Adding Bus Was Successful" }); // Return success message as JSON to the Client
+  
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
+    }
+  };
+  
+    
+module.exports = { welcome, login, addBus}
