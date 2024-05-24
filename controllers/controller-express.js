@@ -105,5 +105,41 @@ const login = async (req, res) => {
     }
   };
   
+
+const editBus = async (req, res) => {
+  try {
+    const { id } = req.body;
+    const { licence_plate, bus_capacity, booked_seats, password, express_id, state } = req.body;
+    let errors = [];
+
+    if (!licence_plate || !bus_capacity || !booked_seats || !password || !express_id || !state) {
+      errors.push({ message: "Please Fill All Fields" });
+      return res.status(400).json({ errors }); // Return errors as JSON
+    }
+
+    // Check if bus station exists
+    const checkResult = await client.query('SELECT * FROM public.bus WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: "Bus not found" });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update bus station
+    const updateResult = await client.query(
+      'UPDATE public.bus SET licence_plate = $1, bus_capacity = $2, booked_seats = $3, password = $4, express_id = $5, state = $6 WHERE id = $7 RETURNING id, licence_plate, bus_capacity, booked_seats, password, express_id, state', 
+      [licence_plate, bus_capacity, booked_seats, hashedPassword, express_id, state, id]
+    );
+    console.log(updateResult.rows);
+
+    return res.status(200).json({ message: "Bus updated successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};
+
+  
     
-module.exports = { welcome, login, addBus}
+module.exports = { welcome, login, addBus, editBus}
