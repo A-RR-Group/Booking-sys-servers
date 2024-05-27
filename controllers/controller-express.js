@@ -142,7 +142,7 @@ const editBus = async (req, res) => {
 
   
 const getBuses = (req,res) => {
-  client.query(`SELECT * FROM public.bus`, (err, result) => {
+  client.query(`SELECT * FROM public.bus WHERE state = true`, (err, result) => {
     if (err) {
       throw err;
     }
@@ -150,50 +150,6 @@ const getBuses = (req,res) => {
     // console.log(result.rows);
     res.status(200).json({ buses: result.rows})
   })};
-
-
-  // const addRide = async (req, res) => {
-  //   let { from_station, to_station, bus, departure_time, date, price, state } = req.body;
-  //   let errors = [];
-  
-  //   if (!from_station || !to_station || !bus || !departure_time || !date || !price || !state) {
-  //     errors.push({ message: "Please Fill All Fields" });
-  //     return res.status(400).json({ errors }); // Return errors as JSON
-  //   }
-  
-  //   try {
-  //     // Check if bus is already registered
-  //     const rideResult = await client.query(`SELECT * FROM public.bus WHERE from_station = $1`, [from_station]);
-  //     console.log(busResult.rows);
-  
-  //     if (rideResult.rows.length > 0) {
-  //       errors.push({ message: "Ride Already Registered" });
-  //       return res.status(400).json({ errors }); // Return errors as JSON
-  //     }
-  
-  //     // Check if the ride_id exists in the express table
-  //     const RideResult = await client.query(`SELECT * FROM public.ride WHERE id = $1`, [ride_id]);
-  //     console.log(expressResult.rows);
-  
-  //     if (RideResult.rows.length === 0) {
-  //       errors.push({ message: "Ride ID Not Found" });
-  //       return res.status(400).json({ errors }); // Return errors as JSON
-  //     }
-  
-  //     // Insert the new bus record
-  //     const insertResult = await client.query(
-  //       "INSERT INTO public.ride(from_station, to_station, bus, departure_time, date, price, state) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, password",
-  //       [from_station, to_station, bus, departure_time, date, price, state]
-  //     );
-  //     console.log(insertResult.rows);
-  //     return res.status(200).json({ message: "Adding Ride Was Successful" }); // Return success message as JSON to the Client
-  
-  //   } catch (err) {
-  //     console.error(err);
-  //     return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
-  //   }
-  // };
-
 
 
   const addRide = async (req, res) => {
@@ -226,6 +182,44 @@ const getBuses = (req,res) => {
       return res.status(500).json({ message: "Internal Server Error" });
     }
   };
+
+
+  const getRides = (req,res) => {
+    client.query(`SELECT * FROM public.ride`, (err, result) => {
+      if (err) {
+        throw err;
+      }
+  
+      // console.log(result.rows);
+      res.status(200).json({ Rides: result.rows})
+    })};
+
+
+    const RemoveBus = async (req, res) => {
+      try {
+        const { id } = req.body;
+        let errors = [];
+    
+        if (!id) {
+          errors.push({ message: "ID parameter is missing" });
+          return res.status(400).json({ errors }); 
+        }
+    
+        // Check if bus station exists
+        const checkResult = await client.query('SELECT * FROM public.bus WHERE id = $1', [id]);
+        if (checkResult.rows.length === 0) {
+          return res.status(404).json({ message: "Bus not found" });
+        }
+    
+        const updateResult = await client.query('UPDATE public.bus SET state = false WHERE id = $1', [id]);
+        console.log(updateResult);
+    
+        return res.status(200).json({ message: "Bus deleted successfully" });
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Internal Server Error", error: err.message });
+      }
+    };
   
 
-module.exports = { welcome, login, addBus, editBus, getBuses, addRide}
+module.exports = { welcome, login, addBus, editBus, getBuses, addRide, getRides, RemoveBus}

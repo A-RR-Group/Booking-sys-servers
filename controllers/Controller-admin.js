@@ -100,7 +100,7 @@ const register = async (req, res) => {
   };
 
   const getExpresses = (req,res) => {
-    client.query(`SELECT * FROM public.express`, (err, result) => {
+    client.query(`SELECT * FROM public.express WHERE state = true`, (err, result) => {
       if (err) {
         throw err;
       }
@@ -110,7 +110,7 @@ const register = async (req, res) => {
     })};
 
     const getStations = (req,res) => {
-      client.query(`SELECT * FROM public.bus_station`, (err, result) => {
+      client.query(`SELECT * FROM public.bus_station WHERE state = true`, (err, result) => {
         if (err) {
           throw err;
         }
@@ -124,7 +124,7 @@ const addExpress = async (req, res) => {
   let { name, phone_number, email, password, state } = req.body;
   let errors = [];
 
-  if (!name || !phone_number || !email || !password || !state) {
+  if (!name || !phone_number || !email || !password || state) {
     errors.push({ message: "Please Fill All Fields" });
     return res.status(400).json({ errors }); // Return errors as JSON
   }
@@ -153,8 +153,6 @@ const addExpress = async (req, res) => {
   }
 };
 
-
-
 const removeExpress = async (req, res) => {
   let { id } = req.body;
   let errors = [];
@@ -172,16 +170,17 @@ const removeExpress = async (req, res) => {
       return res.status(404).json({ errors }); // Return not found error as JSON
     }
 
-    // Remove the express
-    const deleteResult = await client.query('DELETE FROM public.express WHERE id = $1', [id]);
-    console.log(deleteResult);
+    // Update the state to false instead of deleting the record
+    const updateResult = await client.query('UPDATE public.express SET state = false WHERE id = $1', [id]);
+    console.log(updateResult);
 
-    return res.status(200).json({ message: "Express removed successfully" }); // Return success message as JSON
+    return res.status(200).json({ message: "Express deleted successfully" }); // Return success message as JSON
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
   }
 };
+
 
 
 
@@ -195,12 +194,11 @@ const addBusStation = async (req, res) => {
       return res.status(400).json({ errors }); // Return errors as JSON
     }
 
-    // Check if name is already registered
     const result = await client.query(`SELECT * FROM public.bus_station WHERE name = $1`, [name]);
 
     if (result.rows.length > 0) {
       errors.push({ message: "Name Already Registered" });
-      return res.status(400).json({ errors }); // Return errors as JSON
+      return res.status(400).json({ errors });
     } else {
       console.log("bus_station_name available");
       const insertResult = await client.query("INSERT INTO public.bus_station(name, state) VALUES ($1, $2) RETURNING id, name", [name, state]);
@@ -213,30 +211,6 @@ const addBusStation = async (req, res) => {
   }
 };
 
-
-
-const RemoveBusStation = async (req, res) => {
-  try {
-    const { id } = req.body;
-
-    // Check if bus station exists
-    const checkResult = await client.query('SELECT * FROM public.bus_station WHERE id = $1', [id]);
-    if (checkResult.rows.length === 0) {
-      return res.status(404).json({ message: "Bus station not found" });
-    }
-
-    // Remove bus station
-    const deleteResult = await client.query('DELETE FROM public.bus_station WHERE id = $1', [id]);
-    console.log(deleteResult.rows);
-
-    return res.status(200).json({ message: "Bus station removed successfully" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Internal Server Error", error: err.message });
-  }
-};
-
-
 const editBusStation = async (req, res) => {
   try {
     const { id } = req.body;
@@ -245,7 +219,7 @@ const editBusStation = async (req, res) => {
 
     if (!name || !state) {
       errors.push({ message: "Please Fill All Fields" });
-      return res.status(400).json({ errors }); // Return errors as JSON
+      return res.status(400).json({ errors });
     }
 
     // Check if bus station exists
@@ -254,7 +228,6 @@ const editBusStation = async (req, res) => {
       return res.status(404).json({ message: "Bus station not found" });
     }
 
-    // Update bus station
     const updateResult = await client.query('UPDATE public.bus_station SET name = $1, state = $2 WHERE id = $3 RETURNING id, name, state', [name, state, id]);
     console.log(updateResult.rows);
 
@@ -264,6 +237,34 @@ const editBusStation = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 };
+
+
+const RemoveBusStation = async (req, res) => {
+  try {
+    const { id } = req.body;
+    let errors = [];
+
+    if (!id) {
+      errors.push({ message: "ID parameter is missing" });
+      return res.status(400).json({ errors }); 
+    }
+
+    // Check if bus station exists
+    const checkResult = await client.query('SELECT * FROM public.bus_station WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: "Bus station not found" });
+    }
+
+    const updateResult = await client.query('UPDATE public.bus_station SET state = false WHERE id = $1', [id]);
+    console.log(updateResult);
+
+    return res.status(200).json({ message: "Bus station deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};
+
 
 
 module.exports = { welcome, register, login, getExpresses, getStations, addExpress, removeExpress, addBusStation, RemoveBusStation, editBusStation}
