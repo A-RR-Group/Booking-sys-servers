@@ -99,6 +99,33 @@ const register = async (req, res) => {
     }
   };
 
+  const verify_token =  (req, res) => {
+
+    // Get token value to the json body
+    const token = req.body.token;
+
+    // If the token is present
+    if(token){
+
+        // Verify the token using jwt.verify method
+        const decode = jwt.verify(token, 'secret');
+
+        //  Return response with decode data
+        res.json({
+            login: true,
+            data: decode
+        });
+    }else{
+
+        // Return response with error
+        res.json({
+            login: false,
+            data: 'error'
+        });
+    }
+};
+
+  
   const getExpresses = (req,res) => {
     client.query(`SELECT * FROM public.express WHERE state = true`, (err, result) => {
       if (err) {
@@ -267,4 +294,4 @@ const RemoveBusStation = async (req, res) => {
 
 
 
-module.exports = { welcome, register, login, getExpresses, getStations, addExpress, removeExpress, addBusStation, RemoveBusStation, editBusStation}
+module.exports = { welcome, register, login, getExpresses, getStations, addExpress, removeExpress, addBusStation, RemoveBusStation, editBusStation, verify_token}
