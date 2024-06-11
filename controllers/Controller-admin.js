@@ -63,10 +63,6 @@ const register = async (req, res) => {
   const login = async (req, res) => {
 
     let { email, password } = req.body;
-    
-    const access_token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET)
-    
-  
     let errors = [];
   
     if (!email || !password) {
@@ -81,18 +77,25 @@ const register = async (req, res) => {
 
         if (result.rows.length === 0) {
           errors.push({ message: "User not found" });
-          res.status(404).json({ errors }); // Return errors as JSON
+          res.status(404).json({ errors });
         } else {
-          // Check if password is correct
+          // Checking if password is correct
           const user = result.rows[0];
           const validPassword = await bcrypt.compare(password, user.password);
           if (!validPassword) {
             errors.push({ message: "Invalid Password" });
-            res.status(401).json({ errors }); // Return errors as JSON
+            res.status(401).json({ errors });
           } else {
+            const access_token = jwt.sign({ id: user.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15s" })
+            const refresh_token = jwt.sign({ id: user.id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "90d" })
             const username = result.rows[0].username;
-            // Password is correct, user is authenticated
-            res.status(200).json({ access_token: access_token, username: username }); // Return success message as JSON // Return success message as JSON
+            res.cookie("refreshToken", refresh_token, {
+              httpOnly: true,
+              secure: false,
+              path: '/',
+            });
+            
+            res.status(200).json({ access_token: access_token, username: username });
           }
         }
       });
@@ -100,54 +103,35 @@ const register = async (req, res) => {
   };
 
   const verify_token =  (req, res) => {
-
-    // Get token value to the json body
-    const token = req.body.token;
-
-    // If the token is present
-    if(token){
-
-        // Verify the token using jwt.verify method
-        const decode = jwt.verify(token, 'secret');
-
-        //  Return response with decode data
-        res.json({
-            login: true,
-            data: decode
-        });
-    }else{
-
-        // Return response with error
-        res.json({
-            login: false,
-            data: 'error'
-        });
-    }
-};
+    const access_token = req.access_token ? req.access_token : false;
+    res.json({
+      login: true,
+      access_token: access_token
+    });
+  }
 
   
   const getExpresses = (req,res) => {
+    const access_token = req.access_token ? req.access_token : false;
     client.query(`SELECT * FROM public.express WHERE state = true`, (err, result) => {
       if (err) {
         throw err;
       }
-
-      // console.log(result.rows);
-      res.status(200).json({ expresses: result.rows})
+      res.status(200).json({ expresses: result.rows, access_token: access_token})
     })};
 
     const getStations = (req,res) => {
+      const access_token = req.access_token ? req.access_token : false;
       client.query(`SELECT * FROM public.bus_station WHERE state = true`, (err, result) => {
         if (err) {
           throw err;
         }
-  
-        // console.log(result.rows);
-        res.status(200).json({ stations: result.rows})
+        res.status(200).json({ stations: result.rows, access_token: access_token})
       })};
 
 
 const addExpress = async (req, res) => {
+  const access_token = req.access_token ? req.access_token : false;
   let { name, phone_number, email, password, state } = req.body;
   let errors = [];
 
@@ -165,43 +149,42 @@ const addExpress = async (req, res) => {
     console.log(result.rows);
 
     if (result.rows.length > 0) {
-      errors.push({ message: "Name Already Registered" });
-      return res.status(400).json({ errors }); // Return errors as JSON
+      errors.push({ message: "Name already registered" });
+      return res.status(400).json({ errors });
     } else {
-      console.log("express_name available");
-      // return res.json({message: "express_name available"});
       const insertResult = await client.query("INSERT INTO public.express(name, phone_number, email, password, state) VALUES ($1, $2, $3, $4, $5) RETURNING id, password", [name, phone_number, email, hashedPass, state]);
       console.log(insertResult.rows);
-      return res.status(200).json({ message: "Adding express Was Successful" }); // Return success message as JSON
+      return res.status(200).json({ message: "Express added successfully", access_token: access_token });
     }
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 const removeExpress = async (req, res) => {
+  const access_token = req.access_token ? req.access_token : false;
   let { id } = req.body;
   let errors = [];
 
   if (!id) {
     errors.push({ message: "ID parameter is missing" });
-    return res.status(400).json({ errors }); // Return errors as JSON
+    return res.status(400).json({ errors });
   }
 
   try {
     // Check if the express exists
     const result = await client.query('SELECT * FROM public.express WHERE id = $1', [id]);
     if (result.rows.length === 0) {
-      errors.push({ message: "Express not found" });
-      return res.status(404).json({ errors }); // Return not found error as JSON
+      errors.push({ message: "Express not found", access_token: access_token });
+      return res.status(404).json({ errors }); 
     }
 
     // Update the state to false instead of deleting the record
     const updateResult = await client.query('UPDATE public.express SET state = false WHERE id = $1', [id]);
     console.log(updateResult);
 
-    return res.status(200).json({ message: "Express deleted successfully" }); // Return success message as JSON
+    return res.status(200).json({ message: "Express deleted successfully", access_token: access_token}); // Return success message as JSON
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
@@ -212,25 +195,26 @@ const removeExpress = async (req, res) => {
 
 
 const addBusStation = async (req, res) => {
+  const access_token = req.access_token ? req.access_token : false;
   try {
     let { name, state } = req.body;
     let errors = [];
 
     if (!name || !state) {
-      errors.push({ message: "Please Fill All Fields" });
+      errors.push({ message: "Please fill all fields" });
       return res.status(400).json({ errors }); // Return errors as JSON
     }
 
     const result = await client.query(`SELECT * FROM public.bus_station WHERE name = $1`, [name]);
 
     if (result.rows.length > 0) {
-      errors.push({ message: "Name Already Registered" });
+      errors.push({ message: "Name already registered", access_token: access_token });
       return res.status(400).json({ errors });
     } else {
       console.log("bus_station_name available");
       const insertResult = await client.query("INSERT INTO public.bus_station(name, state) VALUES ($1, $2) RETURNING id, name", [name, state]);
       console.log(insertResult.rows);
-      return res.status(200).json({ message: "Adding bus_station Was Successful" }); // Return success message as JSON
+      return res.status(200).json({ message: "Bus station added successfully", access_token: access_token }); // Return success message as JSON
     }
   } catch (err) {
     console.error(err);
@@ -239,26 +223,27 @@ const addBusStation = async (req, res) => {
 };
 
 const editBusStation = async (req, res) => {
+  const access_token = req.access_token ? req.access_token : false;
   try {
     const { id } = req.body;
     const { name, state } = req.body;
     let errors = [];
 
     if (!name || !state) {
-      errors.push({ message: "Please Fill All Fields" });
+      errors.push({ message: "Please fill all fields" });
       return res.status(400).json({ errors });
     }
 
     // Check if bus station exists
     const checkResult = await client.query('SELECT * FROM public.bus_station WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) {
-      return res.status(404).json({ message: "Bus station not found" });
+      return res.status(404).json({ message: "Bus station not found", access_token: access_token });
     }
 
     const updateResult = await client.query('UPDATE public.bus_station SET name = $1, state = $2 WHERE id = $3 RETURNING id, name, state', [name, state, id]);
     console.log(updateResult.rows);
 
-    return res.status(200).json({ message: "Bus station updated successfully" });
+    return res.status(200).json({ message: "Bus station updated successfully", access_token:access_token });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Internal Server Error", error: err.message });
@@ -267,6 +252,7 @@ const editBusStation = async (req, res) => {
 
 
 const RemoveBusStation = async (req, res) => {
+  const access_token = req.access_token ? req.access_token : false;
   try {
     const { id } = req.body;
     let errors = [];
@@ -279,13 +265,13 @@ const RemoveBusStation = async (req, res) => {
     // Check if bus station exists
     const checkResult = await client.query('SELECT * FROM public.bus_station WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) {
-      return res.status(404).json({ message: "Bus station not found" });
+      return res.status(404).json({ message: "Bus station not found", access_token: access_token });
     }
 
     const updateResult = await client.query('UPDATE public.bus_station SET state = false WHERE id = $1', [id]);
     console.log(updateResult);
 
-    return res.status(200).json({ message: "Bus station deleted successfully" });
+    return res.status(200).json({ message: "Bus station deleted successfully", access_token: access_token });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Internal Server Error", error: err.message });
