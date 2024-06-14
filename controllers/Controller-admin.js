@@ -32,15 +32,12 @@ const register = async (req, res) => {
       res.status(400).json({ errors }); // Return errors as JSON
     } else {
       let hashedPassword = await bcrypt.hash(password, 10);
-      console.log(hashedPassword);
   
       // Check if email is already registered
       client.query(`SELECT * FROM public.admin WHERE email = $1`, [email], (err, result) => {
         if (err) {
           throw err;
         }
-  
-        console.log(result.rows);
   
         if (result.rows.length > 0) {
           errors.push({ message: "Email Already Registered" });
@@ -51,8 +48,6 @@ const register = async (req, res) => {
             if (err) {
               throw err;
             }
-  
-            console.log(result.rows);
             res.status(200).json({ message: "Registration Successful" }); // Return success message as JSON
           });
         }
@@ -132,29 +127,26 @@ const register = async (req, res) => {
 
 const addExpress = async (req, res) => {
   const access_token = req.access_token ? req.access_token : false;
-  let { name, phone_number, email, password, state } = req.body;
+  let { name, email, phone_number, state } = req.body;
   let errors = [];
 
-  if (!name || !phone_number || !email || !password || state) {
+  if (!name || !phone_number || !email || !state) {
     errors.push({ message: "Please Fill All Fields" });
     return res.status(400).json({ errors }); // Return errors as JSON
   }
 
   try {
-    let hashedPass = await bcrypt.hash(password, 10);
-    console.log(hashedPass);
 
     // Check if name is already registered
     const result = await client.query(`SELECT * FROM public.express WHERE name = $1`, [name]);
-    console.log(result.rows);
 
     if (result.rows.length > 0) {
       errors.push({ message: "Name already registered" });
       return res.status(400).json({ errors });
     } else {
-      const insertResult = await client.query("INSERT INTO public.express(name, phone_number, email, password, state) VALUES ($1, $2, $3, $4, $5) RETURNING id, password", [name, phone_number, email, hashedPass, state]);
-      console.log(insertResult.rows);
-      return res.status(200).json({ message: "Express added successfully", access_token: access_token });
+      const insertResult = await client.query("INSERT INTO public.express(name, phone_number, email, state) VALUES ($1, $2, $3, $4) RETURNING id, password", [name, phone_number, email, state]);
+      const expresses = await client.query(`SELECT * FROM public.express WHERE state = true`);
+      return res.status(200).json({ message: "Express added successfully", expresses: expresses.rows, access_token: access_token,});
     }
   } catch (err) {
     console.error(err);
@@ -182,9 +174,8 @@ const removeExpress = async (req, res) => {
 
     // Update the state to false instead of deleting the record
     const updateResult = await client.query('UPDATE public.express SET state = false WHERE id = $1', [id]);
-    console.log(updateResult);
-
-    return res.status(200).json({ message: "Express deleted successfully", access_token: access_token}); // Return success message as JSON
+    const expresses = await client.query(`SELECT * FROM public.express WHERE state = true`);
+    return res.status(200).json({ message: "Express deleted successfully", expresses: expresses.rows, access_token: access_token}); // Return success message as JSON
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Internal Server Error" }); // Return internal server error
@@ -211,10 +202,9 @@ const addBusStation = async (req, res) => {
       errors.push({ message: "Name already registered", access_token: access_token });
       return res.status(400).json({ errors });
     } else {
-      console.log("bus_station_name available");
       const insertResult = await client.query("INSERT INTO public.bus_station(name, state) VALUES ($1, $2) RETURNING id, name", [name, state]);
-      console.log(insertResult.rows);
-      return res.status(200).json({ message: "Bus station added successfully", access_token: access_token }); // Return success message as JSON
+      const stations = await client.query(`SELECT * FROM public.bus_station WHERE state = true`);
+      return res.status(200).json({ message: "Bus station added successfully", stations: stations.rows, access_token: access_token }); // Return success message as JSON
     }
   } catch (err) {
     console.error(err);
@@ -237,16 +227,16 @@ const editBusStation = async (req, res) => {
     // Check if bus station exists
     const checkResult = await client.query('SELECT * FROM public.bus_station WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) {
-      return res.status(404).json({ message: "Bus station not found", access_token: access_token });
+      return res.status(404).json({ error: "Bus station not found", access_token: access_token });
     }
 
     const updateResult = await client.query('UPDATE public.bus_station SET name = $1, state = $2 WHERE id = $3 RETURNING id, name, state', [name, state, id]);
-    console.log(updateResult.rows);
+    const stations = await client.query(`SELECT * FROM public.bus_station WHERE state = true`);
 
-    return res.status(200).json({ message: "Bus station updated successfully", access_token:access_token });
+    return res.status(200).json({ message: "Bus station updated successfully", stations: stations.rows, access_token:access_token });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Internal Server Error", error: err.message });
+    return res.status(500).json({ error: "Internal Server Error", error: err.message });
   }
 };
 
@@ -269,9 +259,9 @@ const RemoveBusStation = async (req, res) => {
     }
 
     const updateResult = await client.query('UPDATE public.bus_station SET state = false WHERE id = $1', [id]);
-    console.log(updateResult);
+    const stations = await client.query(`SELECT * FROM public.bus_station WHERE state = true`);
 
-    return res.status(200).json({ message: "Bus station deleted successfully", access_token: access_token });
+    return res.status(200).json({ message: "Bus station deleted successfully", stations: stations.rows, access_token: access_token });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Internal Server Error", error: err.message });
