@@ -10,6 +10,7 @@ const validate_token = (req, res, next) => {
       if (err) {
         // Token is invalid or expired
         const refreshToken = req.cookies.refreshToken;
+        console.log(refreshToken)
 
         if (!refreshToken) return res.status(401).json({ error: "Unauthorized user" });
 
