@@ -88,6 +88,7 @@ const register = async (req, res) => {
               httpOnly: true,
               secure: true,
               path: '/',
+              maxAge: 6 * 30 * 24 * 60 * 60 * 1000
             });
             
             res.status(200).json({ access_token: access_token, username: username });
