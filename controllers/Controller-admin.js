@@ -86,7 +86,7 @@ const register = async (req, res) => {
             const username = result.rows[0].username;
             res.cookie("refreshToken", refresh_token, {
               httpOnly: true,
-              secure: false,
+              secure: true,
               path: '/',
             });
             
