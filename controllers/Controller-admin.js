@@ -81,7 +81,7 @@ const register = async (req, res) => {
             errors.push({ message: "Invalid Password" });
             res.status(401).json({ errors });
           } else {
-            const access_token = jwt.sign({ id: user.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15s" })
+            const access_token = jwt.sign({ id: user.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15d" })
             const refresh_token = jwt.sign({ id: user.id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "90d" })
             const username = result.rows[0].username;
             res.cookie("refreshToken", refresh_token, {
