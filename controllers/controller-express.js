@@ -27,8 +27,6 @@ const login = async (req, res) => {
 
     let { email, password } = req.body;
     
-    const access_token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET)
-    
   
     let errors = [];
   
@@ -37,6 +35,7 @@ const login = async (req, res) => {
       res.status(400).json({ errors });
     } else {
       client.query(`SELECT * FROM public.express WHERE email = $1`, [email], async (err, result) => {
+        const user = result.rows[0];
         if (err) {
           throw err;
         }
@@ -44,14 +43,21 @@ const login = async (req, res) => {
         if (result.rows.length === 0) {
           errors.push({ message: "User not found" });
           res.status(404).json({ errors });
+        }else if(!user.password){
+          const access_token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET)
+          const username = result.rows[0].name;
+          let hashedPassword = await bcrypt.hash(password, 10);
+          client.query(`UPDATE public.express SET password = $1 WHERE email = $2` , [hashedPassword, email], async (err, resultS) => {
+            res.status(200).json({ access_token: access_token, username: username, message: "U will continue using this password" });
+          })
         } else {
-          const user = result.rows[0];
           const validPassword = await bcrypt.compare(password, user.password);
           if (!validPassword) {
             errors.push({ message: "Invalid Password" });
             res.status(401).json({ errors });
           } else {
-            const username = result.rows[0].username;
+            const access_token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET)
+            const username = result.rows[0].name;
             res.status(200).json({ access_token: access_token, username: username }); // Return success message as JSON // Return success message as JSON
           }
         }
